@@ -12,12 +12,14 @@ chrome.runtime.onMessage.addListener( (request, sender, sendResponse) => {
   
   // Function: Step 3 - Query links using fetch API
   const queryLink = async (link) => {
-    const response = await fetch(link);
+    const { urlText, url } = link;
+    const response = await fetch(url);
     const responseText = await response.text();
     const parsedData = (new window.DOMParser()).parseFromString(responseText, "text/html");
     const responseTitle = parsedData.title;
     const updatedResponse = {
-      url: link,
+      urlText: urlText,
+      url: url,
       title: responseTitle,
       urlResponse: response.url,
       redirected: response.redirected,
@@ -30,7 +32,7 @@ chrome.runtime.onMessage.addListener( (request, sender, sendResponse) => {
       console.log('waiting');
       await timer(secToWait + 40);
       secToWait = secToWait <= 25 ? secToWait + 2.5 : 30;
-      return await queryLink(updatedResponse.url);
+      return await queryLink(link);
     } else {
       return updatedResponse;
     }
@@ -42,7 +44,7 @@ chrome.runtime.onMessage.addListener( (request, sender, sendResponse) => {
     const results = [];
     for (let link of links){
       await timer(secToWait);
-      const result = await queryLink(link.url);
+      const result = await queryLink(link);
       if(result) {
         results.push({...result});
       }
