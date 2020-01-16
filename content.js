@@ -1,5 +1,5 @@
 chrome.runtime.sendMessage({ todo: "showPageAction" });
-chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+chrome.runtime.onMessage.addListener( (request, sender, sendResponse) => {
 
     // Function: Fetch unique links
     const fetchLinks = () => {

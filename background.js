@@ -1,58 +1,61 @@
 'use strict';
 
-chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+chrome.runtime.onMessage.addListener( (request, sender, sendResponse) => {
+  let secToWait = 0;
 
-  const timer = ms => {
+  // Function: Promise based timer
+  const timer = sec => {
+    // console.log(`Waiting for ${sec}s`);
+    const ms = sec * 1000;
     return new Promise(res => setTimeout(res, ms));
-  }
-  /**
-   * 
-  type: "basic"
-  url: "https://raywhiteparahills.com.au/properties/residential-for-sale/sa/para-hills-5096/land/2234620"
-  redirected: true
-  status: 200
-  ok: true
-  statusText: ""
-  headers: Headers {}
-  body: (...)
-  bodyUsed: true 
-   */
-  // Function: Query links from website
-  const queryLink = async (url) => {
-    const response = await fetch(url)
-      .then(async (response) => {
-        const responseText = await response.text();
-        const responseTitle = (new window.DOMParser()).parseFromString(responseText, "text/html").title;
-        const updatedLink = {
-          url: url,
-          title: responseTitle,
-          urlResponse: response.url,
-          redirected: response.redirected,
-          status: response.status,
-          ok: response.ok,
-          statusText: response.statusText,
-        };
-        return updatedLink;
-      });
-    return response;
+  };
+  
+  // Function: Step 3 - Query links using fetch API
+  const queryLink = async (link) => {
+    const response = await fetch(link);
+    const responseText = await response.text();
+    const parsedData = (new window.DOMParser()).parseFromString(responseText, "text/html");
+    const responseTitle = parsedData.title;
+    const updatedResponse = {
+      url: link,
+      title: responseTitle,
+      urlResponse: response.url,
+      redirected: response.redirected,
+      status: response.status,
+      ok: response.ok,
+      statusText: response.statusText,
+    };
+
+    if(updatedResponse.status === 429){
+      console.log('waiting');
+      await timer(secToWait + 40);
+      secToWait = secToWait <= 25 ? secToWait + 2.5 : 30;
+      return await queryLink(updatedResponse.url);
+    } else {
+      return updatedResponse;
+    }
   };
 
-  // Function: Prepare links for checking
-  const checkLinks = async (data) => {
-    const links = [...data];
-    links.map(async (link) => {
+  // Function: Step 2 - Prepare links for checking
+  const checkLinks = async (linksArray) => {
+    const links = [...linksArray];
+    const results = [];
+    for (let link of links){
+      await timer(secToWait);
       const result = await queryLink(link.url);
-      if (result.ok) {
-        console.log(result.status);
-      } else {
-        console.log('not okay');
+      if(result) {
+        results.push({...result});
       }
-    });
+    }
+    return results;
   };
 
+  // Function: Step 1 - Checking links in background
   const checkLinksInBackground = async () => {
     const links = [...request.links];
-    await checkLinks(links);
+    console.log(links.length);
+    const results = await checkLinks(links);
+    console.log(results);
   };
 
   // Function: Lazy load all links at once
@@ -60,7 +63,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     const links = [...request.links];
     links.map(link => {
       chrome.tabs.create({
-        url: chrome.extension.getURL('lazyloading.html#') + link.url,
+        url: chrome.extension.getURL('lazyload.html#') + link.url,
         active: false
       });
     });
