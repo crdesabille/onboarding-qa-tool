@@ -1,0 +1,92 @@
+/*465160 262933 343d4a 626b79*/
+.popup_body {
+    font-family: Roboto, -apple-system, sans-serif;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-size: 80%;
+    background-color: #262933;
+}
+
+.onboarding_div h4 {
+    text-align: center;
+    margin: 0;
+    color: #262933;
+    padding: 5px;
+    font-size: 90%;
+}
+
+.onboarding_div ul {
+    box-sizing: border-box;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.onboarding_div li {
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.onboarding_div button {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 3px 12px;
+    font-size: 85%;
+    background-color: #262933;
+    color: white;
+    border: 1px solid #262933;
+    text-align: left;
+    -webkit-animation: none;-moz-animation: none;-ms-animation: none;animation: none;
+}
+
+.onboarding_div button:hover,
+.onboarding_div button:active {
+    background-color: #465160;
+    cursor: pointer;
+    color: #ccc;
+    animation-name: pulse;
+    animation-duration: 800ms;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+    animation-direction: alternate;
+}
+
+.onboarding_div button:disabled {
+    color: #ccc;
+    text-decoration: line-through;
+    pointer-events: none;
+    
+}
+
+.onboarding_div {
+    box-sizing: border-box;
+    margin: auto;
+    background-color: yellow;
+    width: 160px;    
+}
+
+#clearAllBtn, #stopBtn {
+    text-align: center;
+    font-weight: bold;
+    background-color: red;
+    border: 1px solid red;
+}
+
+#clearAllBtn:hover,
+#clearAllBtn:active,
+#stopBtn:hover,
+#stopBtn:active {
+    background-color: yellow;
+    font-weight: bold;
+    font-size: 95%;
+    color: red;
+    cursor: pointer;
+}
+
+@keyframes pulse {
+    to {
+        border: 1px solid #ccc;
+        box-shadow: 0 0 5px 1px #ccc;
+    }
+  }

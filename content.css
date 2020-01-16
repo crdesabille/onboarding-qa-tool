@@ -1,0 +1,34 @@
+/* Popup Container */
+.popup_container {
+  position: relative;
+  display: inline;
+  z-index: 9;
+  pointer-events: none;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+  }
+  
+/* Popup Content */
+.popup_container .popup_content {
+  visibility: visible;
+  font-size: 9px;
+  font-family: Roboto, -apple-system, sans-serif;
+  width: auto;
+  background-color:#262933;
+  color: #fff;
+  text-align: center;
+  border-radius: 5px;
+  padding: 2px 2px 2px 2px;
+  white-space: nowrap;
+  border: 1px solid mediumspringgreen;
+  text-transform: lowercase;
+  font-weight: normal;
+
+  /* Popup Position */
+  position: absolute;
+  z-index: 200;
+  top: 0;
+  left: 0;
+}
