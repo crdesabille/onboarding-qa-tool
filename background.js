@@ -1,6 +1,6 @@
 'use strict';
 
-chrome.runtime.onMessage.addListener( (request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   let secToWait = 0;
 
   // Function: Promise based timer
@@ -9,7 +9,7 @@ chrome.runtime.onMessage.addListener( (request, sender, sendResponse) => {
     const ms = sec * 1000;
     return new Promise(res => setTimeout(res, ms));
   };
-  
+
   // Function: Step 3 - Query links using fetch API
   const queryLink = async (link) => {
     const { urlText, url } = link;
@@ -28,7 +28,7 @@ chrome.runtime.onMessage.addListener( (request, sender, sendResponse) => {
       statusText: response.statusText,
     };
 
-    if(updatedResponse.status === 429){
+    if (updatedResponse.status === 429) {
       console.log('waiting');
       await timer(secToWait + 40);
       secToWait = secToWait <= 25 ? secToWait + 2.5 : 30;
@@ -42,11 +42,11 @@ chrome.runtime.onMessage.addListener( (request, sender, sendResponse) => {
   const checkLinks = async (linksArray) => {
     const links = [...linksArray];
     const results = [];
-    for (let link of links){
+    for (let link of links) {
       await timer(secToWait);
       const result = await queryLink(link);
-      if(result) {
-        results.push({...result});
+      if (result) {
+        results.push({ ...result });
       }
     }
     return results;
@@ -54,10 +54,10 @@ chrome.runtime.onMessage.addListener( (request, sender, sendResponse) => {
 
   // Function: Step 1 - Checking links in background
   const checkLinksInBackground = async () => {
+    console.log(sender);
     const links = [...request.links];
-    console.log(links.length);
     const results = await checkLinks(links);
-    console.log(results);
+    chrome.tabs.sendMessage(sender.tab.id, { todo: "displayResults", results: results });
   };
 
   // Function: Lazy load all links at once
