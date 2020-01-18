@@ -71,13 +71,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     };
 
     // Function: Close results on close button click
-    const closeResults = closeBtn => {
+    const closeResults = (closeBtn) => {
         closeBtn.onclick = () => cleanUp();
-    };
-
-    // Function: Download CSV File
-    const downloadResults = (downloadBtn, data) => {
-        downloadBtn.onclick = () => createCSV(data);
     };
 
     const cleanUp = () => {
@@ -85,21 +80,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (main_container) {
             const children = main_container.childNodes;
             if (children) {
-                children.forEach(child => {
-                    if (child.hasChildNodes) {
-                        const childChildren = child.childNodes;
-                        childChildren.forEach(childChild => {
-                            if (childChild.hasChildNodes) {
-                                const childChildChildren = childChild.childNodes;
-                                childChildChildren.forEach(childChildChild => {
-                                    childChildChild.remove();
-                                });
-                            }
-                            childChild.remove();
-                        });
-                    }
-                    child.remove()
-                });
+                children.forEach(child => child.remove());
             }
             main_container.remove();
         }
@@ -201,12 +182,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 csv += '\n';
             });
 
-            const downloadLink = document.getElementById('downloadCsv');
+            const status_bar = document.getElementById('status_bar');
+            const content = document.createElement('p');
+            content.innerText = `Finished! ${array.length} link(s) checked. | `;
+            const downloadLink = document.createElement('a');
             downloadLink.href = 'data:text/csv;charset=utf-8,' + encodeURI(csv);
             downloadLink.target = '_blank';
             downloadLink.download = `checkLinkResults-${today.getMonth() + 1}-${today.getDate()}-${today.getFullYear()}-${today.getHours()}-${today.getMinutes()}-${today.getSeconds()}.csv`;
             downloadLink.innerText = 'Click here to download CSV file of results.';
-            downloadLink.click();
+            content.appendChild(downloadLink);
+            status_bar.childNodes[0].remove();
+            status_bar.appendChild(content);
         }
     };
 
@@ -313,19 +299,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             return 0;
         });
 
-        const status_bar = document.getElementById('status_bar');
-        const content = document.createElement('p');
-        content.innerText = `Finished! ${finalResults.length} link(s) checked. | `;
-        const downloadLink = document.createElement('a');
-        downloadLink.setAttribute('id', 'downloadCsv');
-        downloadLink.href = '#';
-        downloadLink.target = '_blank';
-        downloadLink.innerText = 'Click here to download CSV file of results.';
-        content.appendChild(downloadLink);
-        status_bar.childNodes[0].remove();
-        status_bar.appendChild(content);
-
-        downloadResults(document.getElementById('downloadCsv'), finalResults);
+        createCSV(finalResults);
     };
 
     // Function: Check links using xhr
