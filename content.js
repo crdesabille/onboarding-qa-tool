@@ -1,27 +1,49 @@
 chrome.runtime.sendMessage({ todo: "showPageAction" });
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    let count = {
+        validCnt: 0,
+        brokenCnt: 0,
+        redOkCnt: 0,
+        redUnsureCnt: 0,
+        unknownCnt: 0
+    };
 
     // Function: Create results container for check links in background
     const createResultsContainer = () => {
+        // Get the body tag
         const body = document.querySelectorAll('body')[0];
 
+        // Create the main container
         const main_container = document.createElement('div');
         main_container.setAttribute('id', 'results_main-container');
 
+        // Create the header container that will contain the drag handle, status bar, anc close button
         const container_header = document.createElement('div');
         container_header.setAttribute('id', 'results_container-header');
 
+        // Create the drag handle
         const drag_handle = document.createElement('div');
         drag_handle.setAttribute('id', 'drag_handle');
-        drag_handle.innerText = 'Drag here to move.';
+        drag_handle.innerHTML = '<span>... ... ...</span>';
 
+        // Create the status bar
         const status_bar = document.createElement('div');
         status_bar.setAttribute('id', 'status_bar');
-        status_bar.innerHTML = '<span>Status</span>';
 
+        // Create statusCount
+        const status_count = document.createElement('div');
+        status_count.setAttribute('id', 'status_count');
+
+        // Create the close button
+        const close = document.createElement('div');
+        close.setAttribute('id', 'close');
+        close.innerHTML = '<span>x</span>';
+
+        // Create the container of the results that will contain the table of results
         const results_container = document.createElement('div');
         results_container.setAttribute('id', 'results_container');
 
+        // Create the table that will contain the actual results
         const results_table = document.createElement('table');
         results_table.setAttribute('id', 'results_table');
         results_table.setAttribute('class', 'results_table');
@@ -39,11 +61,48 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         container_header.appendChild(drag_handle);
         container_header.appendChild(status_bar);
+        container_header.appendChild(status_count);
+        container_header.appendChild(close);
         results_table.appendChild(results_table_header);
         results_container.appendChild(results_table);
         main_container.appendChild(container_header);
         main_container.appendChild(results_container);
         body.insertBefore(main_container, body.firstChild);
+    };
+
+    // Function: Close results on close button click
+    const closeResults = closeBtn => {
+        closeBtn.onclick = () => cleanUp();
+    };
+
+    // Function: Download CSV File
+    const downloadResults = (downloadBtn, data) => {
+        downloadBtn.onclick = () => createCSV(data);
+    };
+
+    const cleanUp = () => {
+        const main_container = document.getElementById('results_main-container');
+        if (main_container) {
+            const children = main_container.childNodes;
+            if (children) {
+                children.forEach(child => {
+                    if (child.hasChildNodes) {
+                        const childChildren = child.childNodes;
+                        childChildren.forEach(childChild => {
+                            if (childChild.hasChildNodes) {
+                                const childChildChildren = childChild.childNodes;
+                                childChildChildren.forEach(childChildChild => {
+                                    childChildChild.remove();
+                                });
+                            }
+                            childChild.remove();
+                        });
+                    }
+                    child.remove()
+                });
+            }
+            main_container.remove();
+        }
     };
 
     // Function to make the results container draggable
@@ -87,39 +146,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
     }
 
-    const displayResults = () => {
-        const results = [...request.results];
-        let classes = ['results'];
-        let status;
-        console.log(results);
-        results.map((result, index) => {
-            if (result.redirect) {
-                if (result.url.length < result.urlResponse.length) {
-                    classes.push('valid_redirect');
-                    status = 'Redirect OK';
-                } else {
-                    classes.push('unsure_redirect');
-                    status = 'Redirect Unsure';
-                }
-            } else if (!result.ok && result.status === 404) {
-                classes.push('broken');
-                status = 'Broken';
-            } else if (!result.ok) {
-                classes.push('warning');
-                status = result.statusText || 'Unknown';
-            } else {
-                classes.push('valid');
-                status = 'Valid';
-            }
-
-            const table = document.getElementById('results_table');
-            const result_row = document.createElement('tr');
-            result_row.setAttribute('class', classes.join(" "));
-            result_row.innerHTML = `<td>${index + 1}</td><td>${status}</td><td>${result.urlText}</td><td>${result.url}</td><td>${result.title}</td><td>${result.urlResponse}</td>`;
-            table.appendChild(result_row);
-        });
-    };
-
     // Function: Fetch unique links
     const fetchLinks = () => {
         // Section: Fetch all anchor tags
@@ -148,56 +174,167 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             return (index === arr.findIndex(arrItem => arrItem.url === link.url));
         });
 
+        // Section: Add index to each link
+        const linksWithIndex = uniqueLinks.map((link, index) => {
+            return { index: index, ...link };
+        });
+
         // Section: Return unique links [array of objects]
-        return uniqueLinks;
+        return linksWithIndex;
     };
 
     // Function: Create a csv file
-    const createCSV = prop => {
-        const array = [...prop];
+    const createCSV = data => {
+        const array = [...data];
         const today = new Date();
         if (array.length > 0) {
-            let csv = 'Status,AnchorText,URL,ResponseURL\n';
-            objResponses.forEach(item => {
-                csv += `${item.urlStatus}, ${item.urlText}, ${item.urlLink}, ${item.urlResponse}`;
-                csv += "\n";
+            let csv = '';
+            const keys = Object.keys(array[0]);
+            keys.map(key => csv += `${key},`);
+            csv += '\n';
+            array.map(item => {
+                const link = [];
+                for (let i in item) {
+                    link.push(item[i]);
+                };
+                csv += `${link.join(',')}`;
+                csv += '\n';
             });
 
-            const container = document.getElementById('status_text');
-            const content = document.createElement('span');
-            const downloadLink = document.createElement('a');
+            const downloadLink = document.getElementById('downloadCsv');
             downloadLink.href = 'data:text/csv;charset=utf-8,' + encodeURI(csv);
             downloadLink.target = '_blank';
-            downloadLink.download = `${objResponses[0].urlHost}-results-${today.getMonth() + 1}-${today.getDate()}-${today.getFullYear()}-${today.getHours()}-${today.getMinutes()}-${today.getSeconds()}.csv`;
-            downloadLink.innerText = 'Download CSV.';
-            downloadLink.setAttribute('style', 'color: yellow;');
-            content.setAttribute('style', 'padding: 5px 5px 5px 5px;');
-            content.appendChild(downloadLink);
-            container.childNodes[0].innerHTML = `<span><br />Checked ${objResponses.length} link(s).</span>`;
-            container.appendChild(content);
-            container.scrollIntoView(true);
+            downloadLink.download = `checkLinkResults-${today.getMonth() + 1}-${today.getDate()}-${today.getFullYear()}-${today.getHours()}-${today.getMinutes()}-${today.getSeconds()}.csv`;
+            downloadLink.innerText = 'Click here to download CSV file of results.';
+            downloadLink.click();
         }
     };
 
-    // Function: Open all links at once
-    const openLinksAtOnce = () => {
-        const links = [...fetchLinks()];
-        links.map(link => {
-            window.open(link.url);
-        });
+    // Function: Interpret the html status codes and output statusText and class
+    const interpretStatus = result => {
+        let classes = ['results'];
+        let statusText = 'Valid';
+        if (result.redirect) {
+            if (result.url.length < result.urlResponse.length) {
+                classes.push('valid_redirect');
+                statusText = 'Redirect OK';
+            } else {
+                classes.push('unsure_redirect');
+                statusText = 'Redirect Unsure';
+            }
+        } else if (!result.ok && result.status === 404) {
+            classes.push('broken');
+            statusText = 'Broken';
+        } else if (result.status === 429) {
+            classes.push('warning');
+            statusText = result.statusText || 'Too many requests';
+        } else if (!result.ok) {
+            classes.push('warning');
+            statusText = result.statusText || 'Unknown';
+        } else {
+            classes.push('valid');
+            statusText = 'Valid';
+        }
+        return [statusText, classes];
     };
 
-    // Function: Fetch links and send it background.js to lazy load all links
-    const lazyLoadLinks = () => {
-        const links = [...fetchLinks()];
-        chrome.runtime.sendMessage({ todo: "lazyLoadAllLinks", links: links });
+    // Function: Display count of each status
+    const displayStatusCount = statusText => {
+        switch (statusText) {
+            case 'Valid':
+                count.validCnt++;
+                break;
+            case 'Broken':
+                count.brokenCnt++;
+                break;
+            case 'Redirect OK':
+                count.redOkCnt++
+                break;
+            case 'Redirect Unsure':
+                count.redUnsureCnt++
+                break;
+            case 'Unknown':
+                count.unknownCnt++;
+                break;
+            default: return console.log(statusText);
+        }
+
+        const status_count = document.getElementById('status_count');
+        status_count.innerHTML = `
+        <span>
+        Valid: ${count.validCnt} | 
+        Broken: ${count.brokenCnt} | 
+        Redirect OK: ${count.redOkCnt} | 
+        Redirect Unsure: ${count.redUnsureCnt} | 
+        Unknown: ${count.unknownCnt}
+        </span>`;
+    };
+
+    // Function: Display results in the results table
+    const displayResults = response => {
+        const result = { ...response };
+        const [statusText, classes] = interpretStatus(result);
+        const table = document.getElementById('results_table');
+        const result_row = document.createElement('tr');
+        result_row.setAttribute('class', classes.join(" "));
+        result_row.innerHTML = `<td>${++result.index}</td><td>${statusText}</td><td>${result.urlText}</td><td>${result.url}</td><td>${result.title}</td><td>${result.urlResponse}</td>`;
+        table.appendChild(result_row);
+    };
+
+    // Function: Update the status bar to display each link's status
+    const statusUpdate = () => {
+        const response = { ...request.updatedResponse };
+        const status_bar = document.getElementById('status_bar');
+        const status = response.status === 429 ? 'Too many request. Retrying in 60s.' : response.status;
+        status_bar.innerHTML = `<p>Server Response: ${status} | ${response.urlText}</p>`;
+        displayResults(response);
+    };
+
+    // Function: Create a CSV of all results and display it on status bar
+    const printResults = () => {
+        const results = [...request.results];
+        const finalResults = results.map(result => {
+            const [statusText] = interpretStatus(result);
+            displayStatusCount(statusText);
+            return {
+                status: result.status,
+                statusText: statusText,
+                anchorText: result.urlText,
+                url: result.url,
+                urlResponse: result.urlResponse,
+                titleResponse: result.title
+            };
+        });
+
+        // Section: Sort links alphabetically by urlText
+        finalResults.sort((a, b) => {
+            if (a.status < b.status) return 1;
+            if (a.status > b.status) return -1;
+            return 0;
+        });
+
+        const status_bar = document.getElementById('status_bar');
+        const content = document.createElement('p');
+        content.innerText = `Finished! ${finalResults.length} link(s) checked. | `;
+        const downloadLink = document.createElement('a');
+        downloadLink.setAttribute('id', 'downloadCsv');
+        downloadLink.href = '#';
+        downloadLink.target = '_blank';
+        downloadLink.innerText = 'Click here to download CSV file of results.';
+        content.appendChild(downloadLink);
+        status_bar.childNodes[0].remove();
+        status_bar.appendChild(content);
+
+        downloadResults(document.getElementById('downloadCsv'), finalResults);
     };
 
     // Function: Check links using xhr
     const checkInBackground = async () => {
         const links = [...fetchLinks()];
+        cleanUp();
         createResultsContainer();
         dragElement(document.getElementById("results_main-container"));
+        closeResults(document.getElementById('close'));
         chrome.runtime.sendMessage({ todo: "checkLinksInBackground", links: links });
     };
 
@@ -220,9 +357,23 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
     };
 
+    // Function: Open all links at once
+    const openLinksAtOnce = () => {
+        const links = [...fetchLinks()];
+        links.map(link => {
+            window.open(link.url);
+        });
+    };
+
+    // Function: Fetch links and send it background.js to lazy load all links
+    const lazyLoadLinks = () => {
+        const links = [...fetchLinks()];
+        chrome.runtime.sendMessage({ todo: "lazyLoadAllLinks", links: links });
+    };
+
     // Function: Remove all popups
     const clearAll = () => {
-        console.log('5');
+        cleanUp();
     };
 
     // Function: Stop background check
@@ -239,7 +390,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         case 'clearAll': return clearAll();
         case 'stop': return stop();
 
-        case 'displayResults': return displayResults();
+        case 'statusUpdate': return statusUpdate();
+        case 'printResults': return printResults();
+
 
         default: return console.log('default switch');
     }

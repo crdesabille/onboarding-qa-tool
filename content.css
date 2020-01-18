@@ -36,45 +36,98 @@
 
 #results_main-container {
   font-family: Roboto, -apple-system, sans-serif;
+  font-size: 100%;
   box-sizing: border-box;
   position: absolute;
   z-index: 100;
   background-color: #262933;
-  text-align: center;
   border: 1px solid #343d4a;
   width: 80%;
-  height: 300px;
+  height: fit-content;
+  max-height: 300px;
   resize: both;
-  top: 8%;
+  top: 25%;
   left: 2%;
   overflow: auto;
 }
+
 #results_container-header {
   box-sizing: border-box;
   width: 100%;
+  height: fit-content;
   display: flex;
+  align-items: center;
+  padding: 1px 3px;
+  margin-bottom: 3px;
 }
 
 #drag_handle {
-  font-size: 12px;
+  font-size: 40%;
   box-sizing: border-box;
-  width: 10%;
-  cursor: move;
+  min-width: 2%;
+  width: 2%;
+  height: 100%;
   z-index: 200;
-  padding: 2px;
-  background-color: #2196F3;
+}
+
+#drag_handle span {
+  box-sizing: border-box;
+  letter-spacing: 4px;
+  cursor: move;
   color: #fff;
+  text-align: center;
+
 }
 
 #status_bar {
   box-sizing: border-box;
-  width: 90%;
-  padding: 2px;
-  font-size: 12px;
+  width: 61%;
+  font-size: 60%;
+}
+
+#status_bar p {
+  box-sizing: border-box;
+  text-align: left;
+  color: yellow;
+}
+
+#status_bar a {
+  box-sizing: border-box;
+  text-align: left;
   color: #fff;
 }
+
+#status_count {
+  box-sizing: border-box;
+  width: 35%;
+  font-size: 60%;
+}
+
+#status_count span {
+  box-sizing: border-box;
+  text-align: left;
+  color: #fff;
+}
+
+#close {
+  font-size: 90%;
+  box-sizing: border-box;
+  cursor: pointer;
+  min-width: 2%;
+  width: 2%;
+  height: 100%;
+}
+
+#close span {
+  float: right;
+  box-sizing: border-box;
+  color: red;
+  padding-right: 3px;
+  text-align: center;
+}
+
 #results_container {
-  display: block;
+  margin: auto;
   box-sizing: border-box;
   width: 100%;
 }
@@ -82,7 +135,7 @@
 .results_table {
   box-sizing: border-box;
   width: 100%;
-  margin: 10px; 
+  margin: auto; 
 }
 
 .column_name {
@@ -90,12 +143,11 @@
   width: 100%;
   border-top: 1px solid #343d4a;
   border-bottom: 1px solid #343d4a;
-  margin-bottom: 20px;
 }
 
-.results_table th {
+.column_name th {
   box-sizing: border-box;
-  padding: 3px 10px;
+  padding: 5px 0;
   font-size: 10px;
   font-weight: bold;
   text-align: center;
@@ -109,7 +161,7 @@
 
 .results td {
   box-sizing: border-box;
-  padding: 2px 10px;
+  padding: 3px 10px;
   font-size: 9px;
   text-align: left;
 }
@@ -133,3 +185,4 @@
 .warning {
   color: #F08080;
 }
+
