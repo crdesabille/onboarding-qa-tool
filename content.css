@@ -38,13 +38,13 @@
   font-family: Roboto, -apple-system, sans-serif;
   font-size: 100%;
   box-sizing: border-box;
-  position: absolute;
+  position: fixed;
   z-index: 100;
   background-color: #262933;
   border: 1px solid #343d4a;
   width: 80%;
   height: fit-content;
-  max-height: 300px;
+  max-height: 600px;
   resize: both;
   top: 25%;
   left: 2%;
@@ -55,10 +55,11 @@
   box-sizing: border-box;
   width: 100%;
   height: fit-content;
-  display: flex;
   align-items: center;
+  display: flex;
   padding: 1px 3px;
   margin-bottom: 3px;
+  z-index: 200;
 }
 
 #drag_handle {
@@ -68,11 +69,13 @@
   width: 2%;
   height: 100%;
   z-index: 200;
+  margin-right: 5px;
 }
 
-#drag_handle span {
+#drag_handle div {
   box-sizing: border-box;
   letter-spacing: 4px;
+  padding-left: 1px;
   cursor: move;
   color: #fff;
   text-align: center;
@@ -81,8 +84,9 @@
 
 #status_bar {
   box-sizing: border-box;
-  width: 61%;
+  width: 56%;
   font-size: 60%;
+  margin-right: 5px;
 }
 
 #status_bar p {
@@ -91,23 +95,30 @@
   color: yellow;
 }
 
-#status_bar a {
-  box-sizing: border-box;
-  text-align: left;
-  color: #fff;
-}
-
 #status_count {
   box-sizing: border-box;
-  width: 35%;
+  width: 30%;
   font-size: 60%;
+  text-align: right;
+  margin-right: 5px;
 }
 
-#status_count span {
+
+#download {
   box-sizing: border-box;
-  text-align: left;
+  visibility: visible;
+  width: 10%;
+  font-size: 60%;
+  text-align: center;
+  margin-right: 5px;
+}
+
+#download a {
+  box-sizing: border-box;
+  width: 100%;
   color: #fff;
 }
+
 
 #close {
   font-size: 90%;
@@ -116,14 +127,18 @@
   min-width: 2%;
   width: 2%;
   height: 100%;
+
 }
 
 #close span {
   float: right;
   box-sizing: border-box;
   color: red;
-  padding-right: 3px;
+  width: 75%;
+  border: 1px solid red;
+  border-radius: 10px;
   text-align: center;
+  padding-bottom: 2px;
 }
 
 #results_container {
@@ -132,7 +147,7 @@
   width: 100%;
 }
 
-.results_table {
+#results_table {
   box-sizing: border-box;
   width: 100%;
   margin: auto; 
@@ -186,3 +201,6 @@
   color: #F08080;
 }
 
+.label {
+  color: white;
+}

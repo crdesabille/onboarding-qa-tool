@@ -8,70 +8,99 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         unknownCnt: 0
     };
 
+    // Function: Promise based timer
+    const timer = sec => {
+        const ms = sec * 1000;
+        return new Promise(res => setTimeout(res, ms));
+    };
+
+    // Function: Create element
+    const createElement = (type, props, inner) => {
+        let element = document.getElementById(props.id);
+        if (!element) {
+            element = document.createElement(type);
+            if (inner.innerHTML) {
+                element.innerHTML = inner.innerHTML;
+            }
+            if (inner.innerText) {
+                element.innerText = inner.innerText;
+            }
+            for (let propName in props) {
+                element.setAttribute(propName, props[propName]);
+            }
+            return element;
+        } else {
+            return props.id;
+        }
+    };
+
+    const appendElement = (parent, child) => {
+        if ((typeof parent) === 'string') {
+            parent = document.getElementById(parent);
+        }
+        if ((typeof child) === 'string') {
+            child = document.getElementById(child);
+        }
+        if (parent) {
+            if (child) {
+                parent.appendChild(child);
+            }
+        }
+    };
+
     // Function: Create results container for check links in background
     const createResultsContainer = () => {
         // Get the body tag
         const body = document.querySelectorAll('body')[0];
 
         // Create the main container
-        const main_container = document.createElement('div');
-        main_container.setAttribute('id', 'results_main-container');
+        const main_container = createElement('div', { id: 'results_main-container' }, '');
 
         // Create the header container that will contain the drag handle, status bar, anc close button
-        const container_header = document.createElement('div');
-        container_header.setAttribute('id', 'results_container-header');
+        const container_header = createElement('div', { id: 'results_container-header' }, '');
 
         // Create the drag handle
-        const drag_handle = document.createElement('div');
-        drag_handle.setAttribute('id', 'drag_handle');
-        drag_handle.innerHTML = '<span>... ... ...</span>';
+        const drag_handle = createElement('div', { id: 'drag_handle' }, { innerHTML: '<div>...</div><div>...</div><div>...</div>' });
 
         // Create the status bar
-        const status_bar = document.createElement('div');
-        status_bar.setAttribute('id', 'status_bar');
+        const status_bar = createElement('div', { id: 'status_bar' }, '');
 
         // Create statusCount
-        const status_count = document.createElement('div');
-        status_count.setAttribute('id', 'status_count');
+        const status_count = createElement('div', { id: 'status_count' }, '');
+
+        // Create download link
+        const download = createElement('div', { id: 'download' }, '');
+        const dLink = createElement('a', { id: 'download_link' }, { innerText: 'Download CSV.' });
 
         // Create the close button
-        const close = document.createElement('div');
-        close.setAttribute('id', 'close');
-        close.innerHTML = '<span>x</span>';
+        const close = createElement('div', { id: 'close' }, { innerHTML: '<span>x</span>' });
 
         // Create the container of the results that will contain the table of results
-        const results_container = document.createElement('div');
-        results_container.setAttribute('id', 'results_container');
+        const results_container = createElement('div', { id: 'results_container' }, '');
 
         // Create the table that will contain the actual results
-        const results_table = document.createElement('table');
-        results_table.setAttribute('id', 'results_table');
-        results_table.setAttribute('class', 'results_table');
+        const results_table = createElement('table', { id: 'results_table' }, '');
 
-        const results_table_header = document.createElement('tr');
-        results_table_header.setAttribute('class', 'column_name');
-        results_table_header.innerHTML = (
-            '<th>#</th>' +
-            '<th>Status</th>' +
-            '<th>AnchorText</th>' +
-            '<th>URL</th>' +
-            '<th>ResponseTitle</th>' +
-            '<th>ResponseURL</th>'
-        );
+        // Create the table headers + column name
+        const results_table_header = createElement('tr', { class: 'column_name' }, { innerHTML: '<th>#</th><th>Status</th><th>AnchorText</th><th>URL</th><th>ResponseTitle</th><th>ResponseURL</th>' });
 
-        container_header.appendChild(drag_handle);
-        container_header.appendChild(status_bar);
-        container_header.appendChild(status_count);
-        container_header.appendChild(close);
-        results_table.appendChild(results_table_header);
-        results_container.appendChild(results_table);
-        main_container.appendChild(container_header);
-        main_container.appendChild(results_container);
-        body.insertBefore(main_container, body.firstChild);
+        appendElement(download, dLink);
+        appendElement(container_header, drag_handle);
+        appendElement(container_header, status_bar);
+        appendElement(container_header, status_count);
+        appendElement(container_header, download);
+        appendElement(container_header, close);
+        appendElement(results_table, results_table_header);
+        appendElement(results_container, results_table);
+        appendElement(main_container, container_header);
+        appendElement(main_container, results_container);
+        if ((typeof main_container) !== 'string') {
+            body.insertBefore(main_container, body.firstChild);
+        }
     };
 
     // Function: Close results on close button click
-    const closeResults = (closeBtn) => {
+    const closeResults = closeBtn => {
         closeBtn.onclick = () => cleanUp();
     };
 
@@ -164,35 +193,41 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return linksWithIndex;
     };
 
+    // Function: Create download link
+    const downloadCSV = file => {
+        const today = new Date();
+        const downloadCsv = document.getElementById('download_link');
+        if (downloadCsv) {
+            downloadCsv.href = '#';
+            downloadCsv.href = 'data:text/csv;charset=utf-8,' + encodeURI(file);
+            downloadCsv.target = '_blank';
+            downloadCsv.download = `Results-${today.getMonth() + 1}-${today.getDate()}-${today.getFullYear()}-${today.getHours()}-${today.getMinutes()}-${today.getSeconds()}.csv`;
+            downloadCsv.style.visibility = 'visible';
+        }
+    };
+
     // Function: Create a csv file
     const createCSV = data => {
-        const array = [...data];
-        const today = new Date();
-        if (array.length > 0) {
-            let csv = '';
-            const keys = Object.keys(array[0]);
-            keys.map(key => csv += `${key},`);
-            csv += '\n';
-            array.map(item => {
+        const resultsToCsv = [...data];
+        if (resultsToCsv.length > 0) {
+            let csvFile = '';
+            resultsToCsv.map((item, index) => {
                 const link = [];
                 for (let i in item) {
+                    if (index === 0) {
+                        csvFile += `${i},`;
+                    }
                     link.push(item[i]);
                 };
-                csv += `${link.join(',')}`;
-                csv += '\n';
+                csvFile += index === 0 ? '\n' : '';
+                csvFile += `${link.join(',')}`;
+                csvFile += '\n';
             });
 
             const status_bar = document.getElementById('status_bar');
-            const content = document.createElement('p');
-            content.innerText = `Finished! ${array.length} link(s) checked. | `;
-            const downloadLink = document.createElement('a');
-            downloadLink.href = 'data:text/csv;charset=utf-8,' + encodeURI(csv);
-            downloadLink.target = '_blank';
-            downloadLink.download = `checkLinkResults-${today.getMonth() + 1}-${today.getDate()}-${today.getFullYear()}-${today.getHours()}-${today.getMinutes()}-${today.getSeconds()}.csv`;
-            downloadLink.innerText = 'Click here to download CSV file of results.';
-            content.appendChild(downloadLink);
-            status_bar.childNodes[0].remove();
-            status_bar.appendChild(content);
+            // status_bar.childNodes[0].remove();
+            status_bar.innerHTML = `<p>Finished checking ${resultsToCsv.length} link(s).</p>`;
+            downloadCSV(csvFile);
         }
     };
 
@@ -225,7 +260,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     };
 
     // Function: Display count of each status
-    const displayStatusCount = statusText => {
+    const displayStatusCount = (statusText) => {
         switch (statusText) {
             case 'Valid':
                 count.validCnt++;
@@ -247,13 +282,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         const status_count = document.getElementById('status_count');
         status_count.innerHTML = `
-        <span>
-        Valid: ${count.validCnt} | 
-        Broken: ${count.brokenCnt} | 
-        Redirect OK: ${count.redOkCnt} | 
-        Redirect Unsure: ${count.redUnsureCnt} | 
-        Unknown: ${count.unknownCnt}
-        </span>`;
+        <div>
+        <span class='valid'> Valid: ${count.validCnt}</span> | 
+        <span class='broken'> Broken: ${count.brokenCnt}</span> | 
+        <span class='valid_redirect'> Redirect OK: ${count.redOkCnt}</span> | 
+        <span class='unsure_redirect'> Redirect Unsure: ${count.redUnsureCnt}</span> | 
+        <span class='warning'> Unknown: ${count.unknownCnt}</span>
+        </div>`;
     };
 
     // Function: Display results in the results table
@@ -261,9 +296,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const result = { ...response };
         const [statusText, classes] = interpretStatus(result);
         const table = document.getElementById('results_table');
-        const result_row = document.createElement('tr');
-        result_row.setAttribute('class', classes.join(" "));
-        result_row.innerHTML = `<td>${++result.index}</td><td>${statusText}</td><td>${result.urlText}</td><td>${result.url}</td><td>${result.title}</td><td>${result.urlResponse}</td>`;
+        const result_row = createElement('tr', { class: classes.join(" ") }, { innerHTML: `<td>${++result.index}</td><td>${statusText}</td><td>${result.urlText}</td><td>${result.url}</td><td>${result.title}</td><td>${result.urlResponse}</td>` });
         table.appendChild(result_row);
     };
 
@@ -271,8 +304,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const statusUpdate = () => {
         const response = { ...request.updatedResponse };
         const status_bar = document.getElementById('status_bar');
-        const status = response.status === 429 ? 'Too many request. Retrying in 60s.' : response.status;
-        status_bar.innerHTML = `<p>Server Response: ${status} | ${response.urlText}</p>`;
+        const status = response.status === 429 ? '<span class="warning"> Too many request. Retrying in 60s. </span>' : response.status === 200 ? '<span class="valid">Valid</span>' : response.status === 404 ? '<span class="broken">Broken</span>' : '<span class="warning">Unknown</span>';
+        status_bar.innerHTML = `<p><span class="label">Checking:</span> ${response.urlText}<span class='label'> | Server Response:</span> ${status} </p>`;
         displayResults(response);
     };
 
@@ -304,8 +337,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     // Function: Check links using xhr
     const checkInBackground = async () => {
+        count = {
+            validCnt: 0,
+            brokenCnt: 0,
+            redOkCnt: 0,
+            redUnsureCnt: 0,
+            unknownCnt: 0
+        };
         const links = [...fetchLinks()];
-        cleanUp();
+        const results_table = document.getElementById('results_table');
+        if (results_table) {
+            results_table.remove();
+        }
         createResultsContainer();
         dragElement(document.getElementById("results_main-container"));
         closeResults(document.getElementById('close'));
@@ -315,19 +358,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // Function: Get all links and download CSV file
     const getAllLinks = () => {
         const links = [...fetchLinks()];
-        const today = new Date();
         if (links.length > 0) {
             let csv = 'AnchorText,URL\n';
             links.map(link => {
                 csv += `${link.urlText}, ${link.url}\n`;
             });
 
-            const downloadLink = document.createElement('a');
-            downloadLink.href = 'data:text/csv;charset=utf-8,' + encodeURI(csv);
-            downloadLink.target = '_blank';
-            downloadLink.download = `AllLinks-${today.getMonth() + 1}-${today.getDate()}-${today.getFullYear()}-${today.getHours()}-${today.getMinutes()}-${today.getSeconds()}.csv`;
-            downloadLink.innerText = 'Download CSV.';
-            downloadLink.click();
+            // Create download link
+            const downloadCsv = document.createElement('a');
+            downloadCsv.href = 'data:text/csv;charset=utf-8,' + encodeURI(csv);
+            downloadCsv.target = '_blank';
+            downloadCsv.download = 'AllLinks.csv';
+            downloadCsv.click();
         }
     };
 
