@@ -106,7 +106,7 @@
 
 #download {
   box-sizing: border-box;
-  visibility: visible;
+  visibility: hidden;
   width: 10%;
   font-size: 60%;
   text-align: center;

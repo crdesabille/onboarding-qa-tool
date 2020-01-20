@@ -198,7 +198,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const today = new Date();
         const downloadCsv = document.getElementById('download_link');
         if (downloadCsv) {
-            downloadCsv.href = '#';
             downloadCsv.href = 'data:text/csv;charset=utf-8,' + encodeURI(file);
             downloadCsv.target = '_blank';
             downloadCsv.download = `Results-${today.getMonth() + 1}-${today.getDate()}-${today.getFullYear()}-${today.getHours()}-${today.getMinutes()}-${today.getSeconds()}.csv`;
