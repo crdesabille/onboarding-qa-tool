@@ -113,6 +113,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         closeBtn.onclick = () => cleanUp();
     };
 
+    // Function: Remove all popup containers
     const cleanUp = () => {
         const main_container = document.getElementById('results_main-container');
         if (main_container) {
@@ -122,6 +123,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             }
             main_container.remove();
         }
+    };
+
+    // Function: Reset chrome storage
+    const reset = () => {
+        chrome.storage.sync.set({ processState: "Stopped" });
+        chrome.storage.sync.set({ linksCount: 0 });
+        chrome.runtime.sendMessage({ task: "completeResults" });
     };
 
     // Function to make the results container draggable
@@ -334,27 +342,30 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     };
 
     // Function: Update the status bar to display each link's status
-    const statusUpdate = async () => {
+    const statusUpdate = () => {
         let response = { ...request.updatedResponse };
-        const status_bar = document.getElementById('status_bar');
-        if (response.status === 429) {
-            displayResults(response);
-            let countdown = 60;
-            while (response.status === 429 && countdown > 0) {
-                status_bar.innerHTML = `<p><span class="warning"> Too many request. Retrying in ${countdown}s. </span></p>`;
-                countdown = countdown - 1;
-                await timer(1);
-                response = { ...request.updatedResponse };
+        chrome.storage.sync.get(['linksCount'], async (result) => {
+            const length = result.linksCount;
+            const status_bar = document.getElementById('status_bar');
+            if (response.status === 429) {
+                displayResults(response);
+                let countdown = 60;
+                while (response.status === 429 && countdown > 0) {
+                    status_bar.innerHTML = `<p><span class="warning"> Too many request. Retrying in ${countdown}s. </span></p>`;
+                    countdown = countdown - 1;
+                    await timer(1);
+                    response = { ...request.updatedResponse };
+                }
+            } else {
+                const status = response.status === 200 ? '<span class="valid">Valid</span>' : response.status === 404 ? '<span class="broken">Broken</span>' : '<span class="warning">Unknown</span>';
+                status_bar.innerHTML = `<p><span class="label">${response.index + 1}/${length} | Checking:</span> ${response.urlText}<span class='label'> | Server Response:</span> ${status} </p>`;
+                displayResults(response);
             }
-        } else {
-            const status = response.status === 200 ? '<span class="valid">Valid</span>' : response.status === 404 ? '<span class="broken">Broken</span>' : '<span class="warning">Unknown</span>';
-            status_bar.innerHTML = `<p><span class="label">Checking:</span> ${response.urlText}<span class='label'> | Server Response:</span> ${status} </p>`;
-            displayResults(response);
-        }
+        });
     };
 
     // Function: Create a CSV of all results and display it on status bar
-    const completeResults = async () => {
+    const completeResults = () => {
         const results = [...request.results];
         results.map(result => {
             const [statusText] = interpretStatus(result);
@@ -367,7 +378,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         clickedDownloadCsv(downloadCsvLink);
         const closeBtn = document.getElementById('close');
         closeBtn.style.visibility = 'visible';
-        chrome.runtime.sendMessage({ task: "completeResults" });
+        reset();
     };
 
     // Function: Check links using xhr
@@ -381,6 +392,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             unknownCnt: 0
         };
         const links = [...fetchLinks()];
+        chrome.storage.sync.set({ linksCount: links.length });
         const results_table = document.getElementById('results_table');
         if (results_table) {
             results_table.remove();
@@ -388,7 +400,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         createResultsContainer();
         dragElement(document.getElementById("results_main-container"));
         closeResults(document.getElementById('close'));
-        chrome.runtime.sendMessage({ todo: "checkLinksInBackground", links: links });
+        const status_bar = document.getElementById('status_bar');
+        if (links.length <= 0) {
+            const results_table = document.getElementById('results_table');
+            if (results_table) results_table.remove();
+            const closeBtn = document.getElementById('close');
+            if (closeBtn) closeBtn.style.visibility = 'visible';
+            status_bar.innerHTML = `<p>${links.length} link(s) to check. Please check page.</p>`;
+            reset();
+        } else {
+            status_bar.innerHTML = `<p>${links.length} link(s) to check.</p>`;
+            chrome.runtime.sendMessage({ todo: "checkLinksInBackground", links: links });
+        }
     };
 
     // Function: Get all links and download CSV file

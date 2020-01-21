@@ -4,19 +4,20 @@ const popupBody = document.getElementById('popup_body');
 const onboardingDiv = document.getElementById('onboarding_div');
 const openLinksAtOnceBtn = document.getElementById('openLinksAtOnceBtn');
 const lazyLoadLinksBtn = document.getElementById('lazyLoadLinksBtn');
-const checkInBackgroundBtn = document.getElementById('checkInBackgroundBtn');
 const getAllLinksBtn = document.getElementById('getAllLinksBtn');
+const checkInBackgroundBtn = document.getElementById('checkInBackgroundBtn');
 
 
 openLinksAtOnceBtn.addEventListener('click', () => { sendToDo('openLinksAtOnce') });
 lazyLoadLinksBtn.addEventListener('click', () => { sendToDo('lazyLoadLinks') });
-checkInBackgroundBtn.addEventListener('click', () => { sendToDo('checkInBackground') });
 getAllLinksBtn.addEventListener('click', () => { sendToDo('getAllLinks') });
+checkInBackgroundBtn.addEventListener('click', () => { sendToDo('checkInBackground') });
 
 const sendToDo = todo => {
   chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
     chrome.tabs.sendMessage(tabs[0].id, { todo: todo, tabID: tabs[0].id }, response => {
       if (response.task === 'checkInBackground') {
+        chrome.storage.sync.set({ processState: "Running" });
         checkInBackgroundBtn.disabled = true;
       }
     });
@@ -30,3 +31,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
+chrome.storage.sync.get(['processState'], result => {
+  if (result.processState === 'Running') {
+    checkInBackgroundBtn.disabled = true;
+  } else {
+    checkInBackgroundBtn.disabled = false;
+  }
+});

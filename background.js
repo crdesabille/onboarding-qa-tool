@@ -1,5 +1,9 @@
 'use strict';
 
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.storage.sync.set({ processState: "Stopped", linksCount: 0 });
+});
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   let secToWait = 0;
   let senderId;
@@ -54,7 +58,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   // Function: Step 1 - Checking links in background
   const checkLinksInBackground = async () => {
-    console.log(sender);
+    // console.log(sender);
     senderId = sender.tab.id;
     const links = [...request.links];
     const results = await checkLinks(links);
