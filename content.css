@@ -42,12 +42,12 @@
   z-index: 100;
   background-color: #262933;
   border: 1px solid #343d4a;
-  width: 80%;
+  width: 78%;
   height: fit-content;
   max-height: 600px;
   resize: both;
-  top: 25%;
-  left: 2%;
+  top: 16%;
+  left: 1%;
   overflow: auto;
 }
 
@@ -106,17 +106,17 @@
 
 #download {
   box-sizing: border-box;
-  visibility: hidden;
   width: 10%;
   font-size: 60%;
   text-align: center;
   margin-right: 5px;
 }
 
-#download a {
+#download_link {
   box-sizing: border-box;
   width: 100%;
   color: #fff;
+  cursor: pointer;
 }
 
 
@@ -134,12 +134,18 @@
   float: right;
   box-sizing: border-box;
   color: red;
-  width: 75%;
+  width: 70%;
   border: 1px solid red;
-  border-radius: 10px;
   text-align: center;
   padding-bottom: 2px;
 }
+
+#close span:hover {
+  color: white;
+  border: 1px solid white;
+  background-color: red;
+}
+
 
 #results_container {
   margin: auto;

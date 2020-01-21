@@ -30,7 +30,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     };
     chrome.tabs.sendMessage(senderId, { todo: "statusUpdate", updatedResponse: updatedResponse });
     if (updatedResponse.status === 429) {
-      await timer(secToWait + 40);
+      await timer(60);
       secToWait = secToWait <= 25 ? secToWait + 2.5 : 30;
       return await queryLink(link);
     } else {
@@ -59,7 +59,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const links = [...request.links];
     const results = await checkLinks(links);
     if (results && links.length === results.length) {
-      chrome.tabs.sendMessage(senderId, { todo: "printResults", results: results });
+      chrome.tabs.sendMessage(senderId, { todo: "completeResults", results: results });
     }
   };
 

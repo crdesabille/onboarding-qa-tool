@@ -30,6 +30,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             }
             return element;
         } else {
+            if (inner.innerHTML) {
+                element.innerHTML = inner.innerHTML;
+            }
+            if (inner.innerText) {
+                element.innerText = inner.innerText;
+            }
+            for (let propName in props) {
+                element.setAttribute(propName, props[propName]);
+            }
             return props.id;
         }
     };
@@ -66,14 +75,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const status_bar = createElement('div', { id: 'status_bar' }, '');
 
         // Create statusCount
-        const status_count = createElement('div', { id: 'status_count' }, '');
+        const status_count = createElement('div', { id: 'status_count' }, { innerHTML: '<div></div>' });
 
         // Create download link
         const download = createElement('div', { id: 'download' }, '');
-        const dLink = createElement('a', { id: 'download_link' }, { innerText: 'Download CSV.' });
+        const dLink = createElement('span', { id: 'download_link', style: 'visibility: hidden;' }, { innerText: 'Download CSV.' });
 
         // Create the close button
-        const close = createElement('div', { id: 'close' }, { innerHTML: '<span>x</span>' });
+        const close = createElement('div', { id: 'close', style: 'visibility: hidden;' }, { innerHTML: '<span>x</span>' });
 
         // Create the container of the results that will contain the table of results
         const results_container = createElement('div', { id: 'results_container' }, '');
@@ -194,15 +203,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     };
 
     // Function: Create download link
-    const downloadCSV = file => {
+    const exportCsv = file => {
         const today = new Date();
-        const downloadCsv = document.getElementById('download_link');
-        if (downloadCsv) {
-            downloadCsv.href = 'data:text/csv;charset=utf-8,' + encodeURI(file);
-            downloadCsv.target = '_blank';
-            downloadCsv.download = `Results-${today.getMonth() + 1}-${today.getDate()}-${today.getFullYear()}-${today.getHours()}-${today.getMinutes()}-${today.getSeconds()}.csv`;
-            downloadCsv.style.visibility = 'visible';
-        }
+        const exportLink = document.createElement('a');
+        exportLink.href = 'data:text/csv;charset=utf-8,' + encodeURI(file);
+        exportLink.target = '_blank';
+        exportLink.download = `Results-${today.getMonth() + 1}-${today.getDate()}-${today.getFullYear()}-${today.getHours()}-${today.getMinutes()}-${today.getSeconds()}.csv`;
+        exportLink.click();
     };
 
     // Function: Create a csv file
@@ -222,12 +229,39 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 csvFile += `${link.join(',')}`;
                 csvFile += '\n';
             });
-
-            const status_bar = document.getElementById('status_bar');
-            // status_bar.childNodes[0].remove();
-            status_bar.innerHTML = `<p>Finished checking ${resultsToCsv.length} link(s).</p>`;
-            downloadCSV(csvFile);
+            exportCsv(csvFile);
         }
+    };
+
+    // Function: Format the final results for csv export
+    const prepareResultsForCsv = () => {
+        const results = [...request.results];
+        const finalResults = results.map(result => {
+            const [statusText] = interpretStatus(result);
+            return {
+                status: result.status,
+                statusText: statusText,
+                anchorText: result.urlText,
+                url: result.url,
+                urlResponse: result.urlResponse,
+                titleResponse: result.title
+            };
+        });
+
+        // Section: Sort links alphabetically by urlText
+        finalResults.sort((a, b) => {
+            if (a.status < b.status) return 1;
+            if (a.status > b.status) return -1;
+            return 0;
+        });
+        createCSV(finalResults);
+    };
+
+    // Function: On click listener for Download CSV button
+    const clickedDownloadCsv = downloadBtn => {
+        downloadBtn.onclick = () => {
+            prepareResultsForCsv();
+        };
     };
 
     // Function: Interpret the html status codes and output statusText and class
@@ -300,42 +334,45 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     };
 
     // Function: Update the status bar to display each link's status
-    const statusUpdate = () => {
-        const response = { ...request.updatedResponse };
+    const statusUpdate = async () => {
+        let response = { ...request.updatedResponse };
         const status_bar = document.getElementById('status_bar');
-        const status = response.status === 429 ? '<span class="warning"> Too many request. Retrying in 60s. </span>' : response.status === 200 ? '<span class="valid">Valid</span>' : response.status === 404 ? '<span class="broken">Broken</span>' : '<span class="warning">Unknown</span>';
-        status_bar.innerHTML = `<p><span class="label">Checking:</span> ${response.urlText}<span class='label'> | Server Response:</span> ${status} </p>`;
-        displayResults(response);
+        if (response.status === 429) {
+            displayResults(response);
+            let countdown = 60;
+            while (response.status === 429 && countdown > 0) {
+                status_bar.innerHTML = `<p><span class="warning"> Too many request. Retrying in ${countdown}s. </span></p>`;
+                countdown = countdown - 1;
+                await timer(1);
+                response = { ...request.updatedResponse };
+            }
+        } else {
+            const status = response.status === 200 ? '<span class="valid">Valid</span>' : response.status === 404 ? '<span class="broken">Broken</span>' : '<span class="warning">Unknown</span>';
+            status_bar.innerHTML = `<p><span class="label">Checking:</span> ${response.urlText}<span class='label'> | Server Response:</span> ${status} </p>`;
+            displayResults(response);
+        }
     };
 
     // Function: Create a CSV of all results and display it on status bar
-    const printResults = () => {
+    const completeResults = async () => {
         const results = [...request.results];
-        const finalResults = results.map(result => {
+        results.map(result => {
             const [statusText] = interpretStatus(result);
             displayStatusCount(statusText);
-            return {
-                status: result.status,
-                statusText: statusText,
-                anchorText: result.urlText,
-                url: result.url,
-                urlResponse: result.urlResponse,
-                titleResponse: result.title
-            };
         });
-
-        // Section: Sort links alphabetically by urlText
-        finalResults.sort((a, b) => {
-            if (a.status < b.status) return 1;
-            if (a.status > b.status) return -1;
-            return 0;
-        });
-
-        createCSV(finalResults);
+        const status_bar = document.getElementById('status_bar');
+        status_bar.innerHTML = `<p>Finished checking ${results.length} link(s).</p>`;
+        const downloadCsvLink = document.getElementById('download_link');
+        downloadCsvLink.style.visibility = 'visible';
+        clickedDownloadCsv(downloadCsvLink);
+        const closeBtn = document.getElementById('close');
+        closeBtn.style.visibility = 'visible';
+        chrome.runtime.sendMessage({ task: "completeResults" });
     };
 
     // Function: Check links using xhr
-    const checkInBackground = async () => {
+    const checkInBackground = () => {
+        sendResponse({ task: "checkInBackground" });
         count = {
             validCnt: 0,
             brokenCnt: 0,
@@ -386,27 +423,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         chrome.runtime.sendMessage({ todo: "lazyLoadAllLinks", links: links });
     };
 
-    // Function: Remove all popups
-    const clearAll = () => {
-        cleanUp();
-    };
-
-    // Function: Stop background check
-    const stop = () => {
-        console.log('6');
-    };
-
     switch (request.todo) {
 
         case 'openLinksAtOnce': return openLinksAtOnce();
         case 'lazyLoadLinks': return lazyLoadLinks();
         case 'checkInBackground': return checkInBackground();
         case 'getAllLinks': return getAllLinks();
-        case 'clearAll': return clearAll();
-        case 'stop': return stop();
 
         case 'statusUpdate': return statusUpdate();
-        case 'printResults': return printResults();
+        case 'completeResults': return completeResults();
 
 
         default: return console.log('default switch');
