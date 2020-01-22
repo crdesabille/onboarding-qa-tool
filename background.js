@@ -17,27 +17,50 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // Function: Step 3 - Query links using fetch API
   const queryLink = async (link) => {
     const { index, urlText, url } = link;
-    const response = await fetch(url);
-    const responseText = await response.text();
-    const parsedData = (new window.DOMParser()).parseFromString(responseText, "text/html");
-    const responseTitle = parsedData.title;
-    const updatedResponse = {
-      index: index,
-      urlText: urlText,
-      url: url,
-      title: responseTitle,
-      urlResponse: response.url,
-      redirected: response.redirected,
-      status: response.status,
-      ok: response.ok,
-      statusText: response.statusText,
-    };
-    chrome.tabs.sendMessage(senderId, { todo: "statusUpdate", updatedResponse: updatedResponse });
-    if (updatedResponse.status === 429) {
-      await timer(60);
-      secToWait = secToWait <= 25 ? secToWait + 2.5 : 30;
-      return await queryLink(link);
+    const response = await fetch(url)
+      .then(response => {
+        return response;
+      })
+      .catch(error => {
+        return { statusText: 'fetchError', error: error };
+      });
+
+    if (response.statusText !== 'fetchError') {
+      const responseText = await response.text();
+      const parsedData = (new window.DOMParser()).parseFromString(responseText, "text/html");
+      const responseTitle = parsedData.title;
+      const updatedResponse = {
+        index: index,
+        urlText: urlText,
+        url: url,
+        title: responseTitle,
+        urlResponse: response.url,
+        redirected: response.redirected,
+        status: response.status,
+        ok: response.ok,
+        statusText: response.statusText
+      };
+      chrome.tabs.sendMessage(senderId, { todo: "statusUpdate", updatedResponse: updatedResponse });
+      if (updatedResponse.status === 429) {
+        await timer(60);
+        secToWait = secToWait <= 25 ? secToWait + 2.5 : 30;
+        return await queryLink(link);
+      } else {
+        return updatedResponse;
+      }
     } else {
+      const updatedResponse = {
+        index: index,
+        urlText: urlText,
+        url: url,
+        title: response.error,
+        urlResponse: 'Fetch Error',
+        redirected: false,
+        status: 0,
+        ok: false,
+        statusText: response.statusText
+      };
+      chrome.tabs.sendMessage(senderId, { todo: "statusUpdate", updatedResponse: updatedResponse });
       return updatedResponse;
     }
   };
@@ -49,8 +72,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     for (let link of links) {
       await timer(secToWait);
       const result = await queryLink(link);
-      if (result) {
+      if (result.statusText !== 'fetchError') {
         results.push({ ...result });
+      } else {
+        break;
       }
     }
     return results;
@@ -62,7 +87,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     senderId = sender.tab.id;
     const links = [...request.links];
     const results = await checkLinks(links);
-    if (results && links.length === results.length) {
+    if (results) {
       chrome.tabs.sendMessage(senderId, { todo: "completeResults", results: results });
     }
   };

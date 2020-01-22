@@ -365,12 +365,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     };
 
     // Function: Create a CSV of all results and display it on status bar
-    const completeResults = () => {
+    const completeResults = async () => {
         const results = [...request.results];
         results.map(result => {
             const [statusText] = interpretStatus(result);
             displayStatusCount(statusText);
         });
+        await timer(1);
         const status_bar = document.getElementById('status_bar');
         status_bar.innerHTML = `<p>Finished checking ${results.length} link(s).</p>`;
         const downloadCsvLink = document.getElementById('download_link');
@@ -455,7 +456,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         case 'statusUpdate': return statusUpdate();
         case 'completeResults': return completeResults();
-
+        case 'incompleteResults': return incompleteResults();
 
         default: return console.log('default switch');
     }
