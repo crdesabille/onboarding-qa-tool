@@ -8,22 +8,45 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   let secToWait = 0;
   let senderId;
 
+  const fetchTimeout = (url, ms, { signal, ...options } = {}) => {
+    const controller = new AbortController();
+    const promise = fetch(url, { signal: controller.signal, ...options });
+    if (signal) signal.addEventListener("abort", () => controller.abort());
+    const timeout = setTimeout(() => controller.abort(), ms);
+    return promise.finally(() => clearTimeout(timeout));
+  };
+
   // Function: Promise based timer
   const timer = sec => {
     const ms = sec * 1000;
     return new Promise(res => setTimeout(res, ms));
   };
 
+
   // Function: Step 3 - Query links using fetch API
   const queryLink = async (link) => {
+    const controller = new AbortController();
     const { index, urlText, url } = link;
-    const response = await fetch(url)
-      .then(response => {
-        return response;
-      })
+
+    const response = await fetchTimeout(url, 10000, { signal: controller.signal })
+      .then(response => { return response })
       .catch(error => {
-        return { statusText: 'fetchError', error: error };
+        if (error.name === "AbortError") {
+          // fetch aborted either due to timeout or due to user clicking the cancel button
+          return { statusText: 'AbortError', error: error };
+        } else {
+          // network error or json parsing error
+          return { statusText: 'fetchError', error: error };
+        }
       });
+
+    // const response = await fetch(url)
+    //   .then(response => {
+    //     return response;
+    //   })
+    //   .catch(error => {
+    //     return { statusText: 'fetchError', error: error };
+    //   });
 
     if (response.statusText !== 'fetchError') {
       const responseText = await response.text();
