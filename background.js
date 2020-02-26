@@ -8,6 +8,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   let secToWait = 0;
   let senderId;
 
+
+  // Function: Timeout for Fetch API
   const fetchTimeout = (url, ms, { signal, ...options } = {}) => {
     const controller = new AbortController();
     const promise = fetch(url, { signal: controller.signal, ...options });
@@ -40,15 +42,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
       });
 
-    // const response = await fetch(url)
-    //   .then(response => {
-    //     return response;
-    //   })
-    //   .catch(error => {
-    //     return { statusText: 'fetchError', error: error };
-    //   });
 
-    if (response.statusText !== 'fetchError') {
+    if (response.statusText !== 'fetchError' && response.statusText !== 'AbortError') {
       const responseText = await response.text();
       const parsedData = (new window.DOMParser()).parseFromString(responseText, "text/html");
       const responseTitle = parsedData.title;
@@ -63,6 +58,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         ok: response.ok,
         statusText: response.statusText
       };
+
       chrome.tabs.sendMessage(senderId, { todo: "statusUpdate", updatedResponse: updatedResponse });
       if (updatedResponse.status === 429) {
         await timer(60);
@@ -77,7 +73,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         urlText: urlText,
         url: url,
         title: response.error,
-        urlResponse: 'Fetch Error',
+        urlResponse: 'Fetch Error or Aborted',
         redirected: false,
         status: 0,
         ok: false,

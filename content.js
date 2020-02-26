@@ -213,10 +213,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // Function: Create download link
     const exportCsv = file => {
         const today = new Date();
+        const emailName = document.getElementById('emailName') ? document.getElementById('emailName').value : 'DraftEmail';
         const exportLink = document.createElement('a');
         exportLink.href = 'data:text/csv;charset=utf-8,' + encodeURI(file);
         exportLink.target = '_blank';
-        exportLink.download = `Results-${today.getMonth() + 1}-${today.getDate()}-${today.getFullYear()}-${today.getHours()}-${today.getMinutes()}-${today.getSeconds()}.csv`;
+        exportLink.download = `${emailName}-${today.getMonth() + 1}m${today.getDate()}d${today.getFullYear()}y${today.getHours()}h${today.getMinutes()}m${today.getSeconds()}s.csv`;
         exportLink.click();
     };
 
@@ -425,10 +426,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             });
 
             // Create download link
+            const emailName = document.getElementById('emailName') ? document.getElementById('emailName').value : 'Results';
             const downloadCsv = document.createElement('a');
             downloadCsv.href = 'data:text/csv;charset=utf-8,' + encodeURI(csv);
             downloadCsv.target = '_blank';
-            downloadCsv.download = 'AllLinks.csv';
+            downloadCsv.download = `${emailName}-AllLinks.csv`;
             downloadCsv.click();
         }
     };
