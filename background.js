@@ -30,7 +30,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const controller = new AbortController();
     const { index, urlText, url } = link;
 
-    const response = await fetchTimeout(url, 10000, { signal: controller.signal })
+    const response = await fetchTimeout(url, 15000, { signal: controller.signal })
       .then(response => { return response })
       .catch(error => {
         if (error.name === "AbortError") {
