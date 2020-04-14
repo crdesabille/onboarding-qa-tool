@@ -33,9 +33,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const response = await fetchTimeout(url, 15000, { signal: controller.signal })
       .then(response => { return response })
       .catch(error => {
+        console.log(error);
         if (error.name === "AbortError") {
           // fetch aborted either due to timeout or due to user clicking the cancel button
-          return { statusText: 'AbortError', error: error };
+          return { statusText: 'AbortError', error: 'Timeout' };
         } else {
           // network error or json parsing error
           return { statusText: 'fetchError', error: error };
